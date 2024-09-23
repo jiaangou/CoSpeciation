@@ -1,0 +1,150 @@
+---
+title: "Origin of coexisting species"
+author: "William Ou"
+date: "2024-09-23"
+output: pdf_document
+---
+
+# Model description
+
+## Fitness function:
+
+$$
+\tag{1}
+W_i = \frac{\lambda \psi(z_i, z_j)}{1 + \frac{C(z_i, z_j)}{K(z_i)}} (1-I_i)
+$$
+
+-   Fitness of individual $i$ is the product of its fertility $\lambda$, reduction in fitness due to incompatability of its parents $I_i$, and its ability to find a mate $\psi (z_i, z_j)$ divided by the amount of competition the individual experiences $1+\frac{C(z_i, z_j)}{K(z_i)}$
+
+-   For simplicity, we assume $\lambda$ is equal for all individuals hence the removal of the subscript
+
+## Incompatability:
+
+$$
+\tag2{}
+I_i = 1 - (1 - \phi)^{n_i}
+$$
+
+-   The fitness effect due to the incomptability of individual $i$'s parents ($I_i$) increases geometrically with the number of incompatible BDMI loci $n_i$ between the parents by the factor $1 -\phi$
+
+    ```{r, echo = FALSE, message = FALSE, warning = FALSE, out.width="50%", fig.align = 'center'}
+    library(ggplot2)
+    library(dplyr)
+    expand.grid(n = 0:5, phi = seq(from = 0.1, to = 0.3, by = 0.1))%>%
+      mutate(I = 1 - (1 - phi)^n)%>%
+      mutate(phi = as.factor(phi))%>%
+      ggplot(aes(x = n, y = I, group = phi, col = phi))+ 
+      geom_line(size = 1.5)+
+      scale_color_manual(values = c('#d0d1e6', '#67a9cf', '#016450'),
+                         name = expression(phi))+
+      labs(x = expression(n[i]), y = expression(I[i]))+
+      theme_classic()+
+      theme(axis.title = element_text(size = 18),
+            legend.text = element_text(size=15),
+            legend.title = element_text(size = 17),
+            axis.text = element_text(size = 15))
+    ```
+
+-   Individuals are haploids with $B = 5$ unlinked BDMI loci, where each locus has 2 alleles (1 or 0). Number of incompatible BDMI loci $n_i$ is computed as the number of BDMIs of mated pairs that are not the same.
+
+    ```{r, echo = FALSE, message = FALSE, warning = FALSE, out.width="60%", fig.align = 'center'}
+    data.frame(male = c(1,1,1,0,1),
+               female = c(1,1, 0, 0, 0),
+               offspring = c(1,1,1,0,0))%>%
+      tibble::rowid_to_column(var = 'locus')%>%
+      tidyr::pivot_longer(cols = 2:4, names_to = 'group', values_to = 'state')%>%
+      mutate(ypos = plyr::mapvalues(group, from = c('male','female','offspring'), to = c(1.5, 1, 0.3)))%>%
+      mutate(ypos = as.numeric(ypos))%>%
+      mutate(state = as.factor(state))%>%
+      ggplot(aes(x = locus, y = ypos))+
+      geom_point(size = 10, aes(fill = state), shape = 21, stroke = 2)+
+      scale_fill_manual(values = c('black', 'white'), name = 'Allele')+
+      lims(y = c(0, 2), x = c(-0.5,6))+
+      annotate('text', x = 1:5, y = 1.8, label = paste0('BDMI', 1:5), size = 4)+
+      annotate('text', x = 0, y = c(1, 1.5), label = c('Parent i', 'Parent j'), size = 5)+
+      annotate('segment', x = 1:5, xend = 1:5, y = 0.75, yend = 0.5, arrow = arrow(type = "closed", length = unit(0.3, 'cm')))+
+      annotate('text', x = 0, y = 0.3, label = 'Offspring', size = 5)+
+      theme_void()
+    ```
+
+## Mating probability
+
+-   The probability of female $i$ mating with male $j$ (e.g., $\psi (z_i, z_j)$) is determined by the distance between their ecological trait $z$ and the strength of assortative mating ($\sigma_m$) normalized over potential male mates of female $i$ (i.e., all females mate with probability = 1 given that males are present) according to the equation
+
+$$
+\tag{3}
+\psi (z_i, z_j)  = \frac{e^{\frac{(z_i - z_j)^2}{2\sigma_m^2}}} {\sum_j{e^{\frac{(z_i - z_j)^2}{2\sigma_m^2}}}}
+$$
+
+-   This model thus incorporates mate competition such that at each time step, some males may not mate, while some may mate with multiple females
+
+-   **NOT YET INCORPORATED:** $\sigma_m$ currently fixed across individuals
+
+## Resource competition
+
+-   Individuals in a population compete for resources according to their differences in ecological trait $z_i$ (e.g., $C_i(z_i, z_j)$) scaled by resources available to the individual $K(z_i)$ (i.e., $C(z_i, z_j) / K(z_i)$)
+
+-   Specifically, $C(z_i, z_j)$ is the competition experienced by individual $i$ in the presence of individual $j$s defined as,
+
+$$
+\tag{4}
+C_{ij} = exp\frac{-\sum_{i \neq j}(z_i - z_j)^2}{2\sigma_z^2}$$
+
+where $\sigma_z^2$ is the competition kernel (or niche width) which we assume is fixed and equal for all individuals
+
+-   In the absence of competitors, an individual with phenotype $z_i$ has access to $K(z_i)$ amount of resources which is defined as,
+
+$$
+\tag{5}
+K(z_i) =   K_oexp(\frac{-(z_i - \theta_p)^2}{2\sigma_k^2})
+$$
+
+where $K_o$ is the maximum amount of resources, or the resources available to an individual with an optimum phenotype for that patch, $\theta_p$, and $\sigma_k^2$ determines the rate in which resource availability decays with the distances between $z_i$ and the optimum (i.e., strength of stabilizing selection).
+
+## Inheritance and mutations
+
+-   **BDMIs**: Offsprings inherit each BDMI locus independently via random sampling of parent alleles. Each inherited allele has a probability of flipping $\mu_i$
+
+-   **Assortative mating** $\sigma_m$: *currently not incorporated yet*
+
+-   **Ecological trait** $z_i$: offspring $z$ is drawn from a Gaussian distribution with mean equal the average of parent $z_i$ and variance, $\mu_z$ (i.e., $\mathcal{N}(z_{parents}, \mu_z)$)
+
+-   **Location** $p_i$: offspring are born into the patch of its parents with probability $1 - m$
+
+```{r, echo = FALSE,message=FALSE, warning=FALSE}
+# Load required packages
+library(knitr)
+library(kableExtra)
+
+# Create the data frame for the table
+table_data <- data.frame(
+`Model parameter` = c("$\\lambda$", "$\\phi$", "$\\sigma_m$", "$\\sigma_z$", "$K_o$", "$\\theta_p$"),
+Description = c("Fertility", "Incompatability", "Assortative variance", "Niche width", "Maximum resource availability", "Optimum of patch p"),
+Value = c(5, 0.1, 0.05, 0.05, 30, 0))
+
+# Bold the column names using LaTeX formatting
+colnames(table_data) <- c("\\textbf{Model parameter}", "\\textbf{Description}", "\\textbf{Value [interval]}")
+
+# Create the table using kable and kableExtra
+table_data %>%
+  kable(caption = "List of model parmaters and their description", align = 'c', format = "latex", escape = FALSE) %>%
+  kable_styling(latex_options = c("striped", "hold_position"))
+```
+
+## R functions
+
+1.  Initialize initial population `initial_condition(N, bdmi_B)`
+
+-   This function initializes a data frame that into a form that the main simulator function interprets
+
+-   `N` is the arugment specifying the number of individuals to start and `bdmi_B` is the number of BDMI loci each individual has
+
+2.  Simulator `ibm(population, num_gens, assort_sigma = 0.05, phi = 0.2, birth = 10, theta = c(0, 0.01), sig2_alpha = 0.05, K0 = 50, sig2_k = 0.05, migration_p = 0.1, bdmi_mu = 10^-3, eco_mu = 10^-2)`
+
+-   This is the main function that implments the individual-based model
+
+-   `population` is a dataframe containing the initial condition of the models (output of `initial_condition()`
+
+-   `num_gens` specifies the number of generations in which to run the model for
+
+-   Other arguments specify the parameter values of the model
