@@ -65,4 +65,16 @@ where $`K_o`$ is the maximum amount of resources, or the resources available to 
 -   **Location** $`p_i`$: offspring are born into the patch of its parents with probability $`1 - m`$ and migrate to the other patch with probability $`m`$
 
 
+## R functions
 
+1. `initial_condition(N = 50, bdmi_B = 5)`
+
+- this function initializes a datamframe given starting population size of `N` individuals and `bdmi_B` BMDI loci
+
+2. `ibm(population, num_gens)`
+
+- this is the main simulator function
+- the argument `population` specifies the initial condition and takes in the output of `initial_condition()` as its input
+- `num_gens` specifies the number of generations to run the simulation
+
+   
