@@ -56,7 +56,7 @@ where $`K_o`$ is the maximum amount of resources, or the resources available to 
 
 ## Inheritance and mutations
 
--   **BDMIs**: Offsprings inherit each BDMI locus independently via random sampling of parent alleles. Each inherited allele has a probability of flipping $`\mu_i`$
+-   **BDMIs**: Offsprings inherit each BDMI locus independently via random sampling of parent alleles. Each inherited allele has a probability of mutating = $`\mu_i`$
 
 -   **Assortative mating** $`\sigma_m`$: *currently not incorporated yet*
 
