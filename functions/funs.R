@@ -102,9 +102,9 @@ mating <- function(population, competition,
 
 #Simulator  -----
 ibm <- function(population, num_gens,
-                assort_sigma = 0.05, phi = 0.2, birth = 10,
+                phi = 0.2, birth = 10,
                 theta = c(0, 0.01), sig2_alpha = 0.05, K0 = 50, sig2_k = 0.05,
-                migration_p = 0.1, bdmi_mu = 10^-3, eco_mu = 10^-2){
+                migration_p = 0.1, bdmi_mu = 10^-3, eco_mu = 10^-2, assort_mu = 10^-2){
 
   require(dplyr)
   
@@ -167,6 +167,10 @@ ibm <- function(population, num_gens,
       #eco trait
       N$zi <- rnorm(n = length(N$zi), mean = N$zi, sd = eco_mu)
       
+      #assortativity trait
+      N$assort_sigma <- rnorm(n = length(N$assort_sigma), mean = N$assort_sigma, sd = assort_mu)
+      
+      
       #bdmi
       N[,bdmi_names] <- N[,bdmi_names]%>%
         mutate(across(everything(), ~ ifelse(runif(n()) < bdmi_mu, 1 - ., .)))
@@ -174,6 +178,8 @@ ibm <- function(population, num_gens,
       #location
       N$patch <- ifelse(runif(length(N$patch)) < migration_p, 3 - N$patch, N$patch)
 
+      
+      
       ###########################
       #4. Update stoppers
       ###########################
@@ -196,10 +202,11 @@ ibm <- function(population, num_gens,
 
 
 #Initialize data frame -----
-initial_condition <- function(N = 50, bdmi_B = 5){
+initial_condition <- function(N = 50,assort_sigma = 0.01, bdmi_B = 5){
   require(dplyr)
   data.frame(zi = runif(N), #starting traits are uniformly distributed
              sex = sample(c("F", "M"), size = N, replace = TRUE),
+             assort_sigma = assort_sigma,
              incomp = 1,
              patch = sample(1:2, N, replace = TRUE))%>%
     bind_cols(matrix(rbinom(n = bdmi_B*N, size = 1, 0.5), ncol = bdmi_B)%>%
