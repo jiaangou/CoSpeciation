@@ -207,7 +207,7 @@ initial_condition <- function(N = 50,assort_sigma = 0.01, bdmi_B = 5){
   data.frame(zi = runif(N), #starting traits are uniformly distributed
              sex = sample(c("F", "M"), size = N, replace = TRUE),
              assort_sigma = assort_sigma,
-             incomp = 1,
+             incomp = 0,
              patch = sample(1:2, N, replace = TRUE))%>%
     bind_cols(matrix(rbinom(n = bdmi_B*N, size = 1, 0.5), ncol = bdmi_B)%>%
                 as.data.frame()%>%
