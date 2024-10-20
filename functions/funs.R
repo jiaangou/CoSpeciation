@@ -1,6 +1,6 @@
 #MATING FUNCTION -----
 mating <- function(population, competition,
-                   birth = 5, assort_sigma = 0.05, phi = 0.2){
+                   birth = 5, phi = 0.2){
   require(dplyr)
   #Check that population comes from only a single patch
   patch_i <- unique(population$patch)
@@ -45,8 +45,9 @@ mating <- function(population, competition,
       #Sample a male mate ------
       #compute probabilities of sampling each male given z_i and z_j
       z_i <- females[f, ]$zi
+      assort_sigma_i <- females[f, ]$assort_sigma #choosiness of female_i
       z_j <- males$zi
-      pij <-(exp((-(z_i - z_j)^2 )/(2*assort_sigma)) / sum(exp((-(z_i - z_j)^2 )/(2*assort_sigma))))
+      pij <-(exp((-(z_i - z_j)^2 )/(2*assort_sigma_i)) / sum(exp((-(z_i - z_j)^2 )/(2*assort_sigma_i))))
       
       #select mate
       male_i <- sample(1:nrow(males), size = 1, prob = pij)
@@ -54,7 +55,7 @@ mating <- function(population, competition,
       #parent traits
       pair <- rbind(females[f, ],
                     males[male_i,])
-      
+
       #Calculate incompatibility ------
       #count the number of loci that are different
       incomp_n <- pair[,bdmi_names]%>%
@@ -64,6 +65,7 @@ mating <- function(population, competition,
       #Generate offspring phenotypes --------  
       offspring_incomp <- 1 - (1 - phi)^incomp_n  #Calculate incomp of offspring
       offspring_z <- rep(mean(pair$zi), num_offsprings[f]) #offspring z's
+      offspring_assort_sigma <- rep(mean(pair$assort_sigma), num_offsprings[f]) #offspring assortativity
       offspring_sex <- sample(c('F','M'), size = num_offsprings[f], replace = TRUE)
       offspring_bdmi <- pair[,bdmi_names]%>%
         apply(2, function(x)sample(x, size = num_offsprings[f], replace = TRUE))
@@ -81,7 +83,9 @@ mating <- function(population, competition,
       
       
       #Combine and save
-      offsprings[[f]] <- data.frame(zi = offspring_z, sex = offspring_sex, incomp = offspring_incomp, patch = patch_i)%>%
+      offsprings[[f]] <- data.frame(zi = offspring_z, sex = offspring_sex,
+                                    assort_sigma = offspring_assort_sigma,
+                                    incomp = offspring_incomp, patch = patch_i)%>%
         bind_cols(offspring_bdmi)
       
       
