@@ -5,8 +5,9 @@ library(ggplot2)
 #Set up initial conditions ----------
 N <- 60 #pop size
 N0 <- data.frame(zi = runif(N), #starting traits are uniformly distributed
-                   sex = sample(c("F", "M"), size = N, replace = TRUE),
-                   incomp = 1,
+                 sex = sample(c("F", "M"), size = N, replace = TRUE),
+                 assort_sigma = 0.05,
+                   incomp = 0.1,
                    #patch = '2'
                    patch = sample(1:2, N, replace = TRUE))%>%
   bind_cols(matrix(rbinom(n = 5*N, size = 1, 0.5), ncol = 5)%>%
@@ -22,8 +23,9 @@ ibm(population = N0, num_gens = 10, birth = 10, eco_mu = 0.1, theta = c(0, 1), m
   mutate(gen = paste0('gen:', generations))%>%
   mutate(patch = as.factor(patch))%>%
   ggplot(aes(x = zi))+
-  geom_density(aes(fill = patch))+
-  facet_grid(gen~patch)+
+  geom_density(aes(fill = patch), alpha = 0.5)+
+  scale_fill_manual(values = c('#386cb0', '#ffff99'))+
+  facet_grid(gen~.)+
   theme_bw()
   
 
