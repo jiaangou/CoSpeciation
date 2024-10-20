@@ -1,7 +1,6 @@
 # CoSpeciation
 
-
-A two-patch, sexually reproducing individual-based model with nonoverlapping generations for investigating ecological and non-ecological factors of the speciation process.  
+A two-patch, sexually reproducing individual-based model with nonoverlapping generations for investigating ecological and non-ecological factors of the speciation process.
 
 ## Fitness function
 
@@ -9,8 +8,8 @@ $$
 W_i = \frac{\lambda \psi(z_i, z_j)}{1 + \frac{C(z_i, z_j)}{K(z_i)}} (1-I_i)
 $$
 
-- The fitness of individual i ($`W_i`$) is the product of its fertility $\lambda$, reduction in fitness due to incompatibility of its parents $`I_i`$, and its ability to find a mate $`\psi(z_i, z_j)`$, divided by the amount of competition the individual experiences $`1 + \frac{C(z_i, z_j)}{K(z_i)}`$
-- For simplicity, we assume $`\lambda`$ is equal for all individuals, hence the removal of the subscript.
+-   The fitness of individual i in patch p ($W_i^p$) is the product of its fertility $\lambda$, reduction in fitness due to incompatibility of its parents $I_i^p$, and its ability to find a mate $\psi(z_i^p, z_j^p)$, divided by the amount of competition the individual experiences $1 + \frac{C(z_i^p, z_j^p)}{K(z_i^p)}$
+-   For simplicity, we assume $\lambda$ is equal for all individuals, hence the removal of the subscript.
 
 ## Incompatibility
 
@@ -18,10 +17,9 @@ $$
 I_i = 1 - (1 - \phi)^{n_i}
 $$
 
-- The fitness effect due to the incompatibility of individual i's parents $`I_i`$ increases geometrically with the number of incompatible BDMI loci $`n_i`$ between the parents by the factor $`1 - \phi`$.
+-   The fitness effect due to the incompatibility of individual i's parents $`I_i`$ increases geometrically with the number of incompatible BDMI loci $`n_i`$ between the parents by the factor $`1 - \phi`$.
 
-- Individuals are haploids with $B = 5$ unlinked BDMI loci, with 2 alleles (1 or 0) each. Number of incompatible BDMI loci $n_i$ is computed as the number of mismatched BDMIs between mated pairs.
-
+-   Individuals are haploids with $B = 5$ unlinked BDMI loci, with 2 alleles (1 or 0) each. Number of incompatible BDMI loci $n_i$ is computed as the number of mismatched BDMIs between mated pairs.
 
 ## Mating probability
 
@@ -64,17 +62,14 @@ where $`K_o`$ is the maximum amount of resources, or the resources available to 
 
 -   **Location** $`p_i`$: offspring are born into the patch of its parents with probability $`1 - m`$ and migrate to the other patch with probability $`m`$
 
-
 ## R functions
 
-1. `initial_condition(N = 50, bdmi_B = 5)`
+1.  `initial_condition(N = 50, bdmi_B = 5)`
 
-- this function initializes a datamframe given starting population size of `N` individuals and `bdmi_B` BMDI loci
+-   this function initializes a datamframe given starting population size of `N` individuals and `bdmi_B` BMDI loci
 
-2. `ibm(population, num_gens)`
+2.  `ibm(population, num_gens)`
 
-- this is the main simulator function
-- the argument `population` specifies the initial condition and takes in the output of `initial_condition()` as its input
-- `num_gens` specifies the number of generations to run the simulation
-
-   
+-   this is the main simulator function
+-   the argument `population` specifies the initial condition and takes in the output of `initial_condition()` as its input
+-   `num_gens` specifies the number of generations to run the simulation
