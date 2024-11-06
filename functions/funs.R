@@ -1,37 +1,46 @@
-#Initialize data frame -----
-initial_condition <- function(N = 50,assort_sigma = 0.01, bdmi_B = 6){
-  require(dplyr)
-  data.frame(zi = runif(N), #starting traits are uniformly distributed
-             sex = sample(c("F", "M"), size = N, replace = TRUE),
-             assort_sigma = assort_sigma,
-             incomp = 0,
-             patch = sample(1:2, N, replace = TRUE))%>%
-    bind_cols(matrix(rbinom(n = bdmi_B*N, size = 1, 0.9), ncol = bdmi_B)%>%
-                as.data.frame()%>%
-                setNames(paste0('bdmi',1:bdmi_B)))
-}
+#BDMI fitness reduction -----------
+bdmi_I <- function(genotype, phi = 0.2, incomp_type = c('10','01'), group_size = 2){
 
-#BDMI functions -----------
-#1. BDMI grouping
-bdmi_groups <- function(genotype, b = 2){
-  n_loci <- length(genotype)
   #Check number of loci is divisible by group_size
-  if (n_loci %% b != 0) {
+  n_loci <- length(genotype)
+  if (n_loci %% group_size != 0) {
     stop("Number of loci is not divisible by group_size")
   }
 
-  #Combine pairs into a single element
-  out <- sapply(seq(from = 1, to = n_loci, by = b), function(i)
-    paste0(genotype[i:(i + (b-1))], collapse = ''))
+  #Pair up BDMI loci
+  bdmi_groups <- sapply(seq(from = 1, to = n_loci, by = group_size), function(i)
+    paste0(genotype[i:(i + (group_size-1))], collapse = ''))
 
-  return(out)
+
+  #Count number of incompatible types
+  incomp_n  <- sum(bdmi_groups %in% incomp_type)
+
+
+  #Calculate fitness reduction due to incompatbility
+  I <- 1 - (1 - phi)^incomp_n
+
+  return(I)
 }
 
-#2. Counting BDMI types
-#Count the number of bdmi_groups that are of specific type (default is counting the number of heterozygote)
-bdmi_types_n <- function(b_groups, type = c('10','01')){
-  out <- sum(b_groups %in% type)
-  return(out)
+#Initialize data frame -----
+initial_condition <- function(N = 50,assort_sigma = 0.01, bdmi_B = 6, phi = 0.2){
+  require(dplyr)
+  n0 <- data.frame(zi = runif(N), #starting traits are uniformly distributed
+                   sex = sample(c("F", "M"), size = N, replace = TRUE),
+                   assort_sigma = assort_sigma,
+                   incomp = 0,
+                   patch = sample(1:2, N, replace = TRUE))%>%
+    bind_cols(matrix(rbinom(n = bdmi_B*N, size = 1, 0.9), ncol = bdmi_B)%>%
+                as.data.frame()%>%
+                setNames(paste0('bdmi',1:bdmi_B)))
+
+  #Calculate incompatbilities
+  n0$incomp <- n0[,paste0('bdmi',1:bdmi_B)]%>%
+    apply(1, function(x)x%>%
+            bdmi_I(phi = phi))
+
+  return(n0)
+
 }
 
 
@@ -95,17 +104,22 @@ mating <- function(population, competition,
 
       #Calculate incompatibility ------
       #count the number of loci that are different
-      incomp_n <- pair[,bdmi_names]%>%
-        apply(2, function(x)abs(diff(x)))%>%
-        sum
+      # incomp_n <- pair[,bdmi_names]%>%
+      #   apply(2, function(x)abs(diff(x)))%>%
+      #   sum
+      #offspring_incomp <- 1 - (1 - phi)^incomp_n  #Calculate incomp of offspring
+
 
       #Generate offspring phenotypes --------
-      offspring_incomp <- 1 - (1 - phi)^incomp_n  #Calculate incomp of offspring
       offspring_z <- rep(mean(pair$zi), num_offsprings[f]) #offspring z's
       offspring_assort_sigma <- rep(mean(pair$assort_sigma), num_offsprings[f]) #offspring assortativity
       offspring_sex <- sample(c('F','M'), size = num_offsprings[f], replace = TRUE)
       offspring_bdmi <- pair[,bdmi_names]%>%
         apply(2, function(x)sample(x, size = num_offsprings[f], replace = TRUE))
+
+
+      #BDMI incompatability
+      offspring_incomp <- bdmi_I(offspring_bdmi, phi = phi)
 
       #Convert bdmi to a data.frame
       if(!is.matrix(offspring_bdmi)){
@@ -117,16 +131,12 @@ mating <- function(population, competition,
           as.data.frame()
       }
 
-
-
       #Combine and save
       offsprings[[f]] <- data.frame(zi = offspring_z, sex = offspring_sex,
                                     assort_sigma = offspring_assort_sigma,
                                     incomp = offspring_incomp, patch = patch_i)%>%
         bind_cols(offspring_bdmi)
 
-
-      #print(offsprings[[f]])
       #End of female loop
     }
     out <- bind_rows(offsprings)
@@ -141,7 +151,7 @@ mating <- function(population, competition,
 ibm <- function(population, num_gens,
                 phi = 0.2, birth = 10,
                 theta = c(0, 0.01), sig2_alpha = 0.05, K0 = 50, sig2_k = 0.05,
-                migration_p = 0.1, bdmi_mu = 10^-3, eco_mu = 10^-2, assort_mu = 10^-2){
+                migration_p = 0.1, bdmi_mu = 10^-3, eco_mu = 10^-2, assort_mu = 0){
 
   require(dplyr)
 
@@ -150,6 +160,7 @@ ibm <- function(population, num_gens,
   ###########################
   #BDMI names
   bdmi_names <- grep("^bdmi", names(population), value = TRUE)
+
 
   #Create output list
   output <- vector('list', length = num_gens + 1)
@@ -184,8 +195,17 @@ ibm <- function(population, num_gens,
       #Fitness effect of competition
       comp <- 1 + (c_i/k_i)
 
+      #Print gens + patch
+      #print(paste0("Generation:", g, " Patch:", p))
+      #print(N)
+      #if(g == 2 & p == 2){
+      #  return(N)
+      #}
+      #print("Generation:", g, "Patch:", p)
+
+
       #Reproduction -------------------
-      patch_results[[p]] <- mating(population = N[N$patch == p,], competition = comp, birth = birth)
+      patch_results[[p]] <- mating(population = N[N$patch == p,], competition = comp, birth = birth, phi = phi)
 
     }
 
@@ -211,6 +231,10 @@ ibm <- function(population, num_gens,
       #bdmi
       N[,bdmi_names] <- N[,bdmi_names]%>%
         mutate(across(everything(), ~ ifelse(runif(n()) < bdmi_mu, 1 - ., .)))
+      #incompatability
+      N$incomp <- N[,bdmi_names]%>%
+        apply(., 1, function(x)bdmi_I(x, phi = 0.2))
+
 
       #location
       N$patch <- ifelse(runif(length(N$patch)) < migration_p, 3 - N$patch, N$patch)
