@@ -12,7 +12,7 @@ N0 <- initial_condition(N = N, assort_sigma = 0.05, bdmi_B = 5)
 
 
 #Demo ---------
-sims <- ibm(population = N0, num_gens = 10, birth = 10, eco_mu = 0.1, theta = c(0, 1), migration_p = 0.001)%>%
+sims <- ibm(population = N0, num_gens = 50, birth = 10, eco_mu = 0.1, theta = c(0, 1), migration_p = 0.001)%>%
   bind_rows(.id = 'generations')%>%
   mutate(generations = as.integer(generations))%>%
   mutate(gen = paste0('gen:', generations))%>%
@@ -34,13 +34,13 @@ sims %>%
   facet_wrap(~Variable, scales = 'free', 
              labeller = as_labeller(variable_labels, label_parsed)) + 
   theme_bw() +
-  theme(strip.text = element_text(size = 15))
+  theme(strip.text = element_text(size = 15), axis.text = element_text(size = 15), axis.title = element_text(size = 15))
 
 
 #BDMIs
 sims%>%
   tidyr::pivot_longer(cols = paste0('bdmi', 1:5), names_to = 'bdmi', values_to = 'allele')%>%
-  #filter(generations == 3)%>%
+  filter(generations %in% seq(from = 1, to = 50, by = 5))%>%
   group_by(generations, patch, bdmi, allele, .drop = FALSE)%>%
   summarise(n = n())%>%
   ungroup%>%
@@ -77,14 +77,17 @@ sims%>%
 
 
 
-
 #Individual-level ---------------
 sims%>%
+  filter(generations %in% c(1, 2, 5, 10, 20, 30))%>%
+  mutate(gen = factor(gen, levels = paste0('gen:', c(1, 2, 5, 10, 20, 30))))%>%
   ggplot(aes(x = zi))+
   geom_density(aes(fill = patch), alpha = 0.5)+
   scale_fill_manual(values = col2)+
+  labs(x = expression('z'[i]), y = "Density")+
   facet_grid(gen~.)+
-  theme_bw()
+  theme_bw()+
+  theme(strip.text = element_text(size = 15), axis.text = element_text(size = 15), axis.title = element_text(size = 15))
   
 
 
