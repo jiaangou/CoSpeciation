@@ -9,7 +9,7 @@ A two-patch, sexually reproducing individual-based model with nonoverlapping gen
 ## Fitness function
 
 $$
-W_i = \frac{\lambda \psi(z_i^p, z_j^p)}{1 + \frac{C(z_i^p, z_j^p)}{K(z_i^p, \theta_p)}} (1-I_i^p)
+W_i = \frac{\lambda \psi(z_i^p, z_j^p)}{1 + \frac{C(z_i^p, z_j^p)}{K(z_i^p, \theta_p)}} (I_i^p)
 $$
 
 -   The fitness of individual *i* in patch *p* ($W_i^p$) is the product of its fertility $\lambda$, reduction in fitness due to incompatibility of its parents $I_i^p$, and its ability to find a mate $\psi(z_i^p, z_j^p)$, divided by the amount of competition the individual experiences $1 + \frac{C(z_i^p, z_j^p)}{K(z_i^p, \theta_p)}$
