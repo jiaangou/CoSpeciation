@@ -23,9 +23,9 @@ bdmi_I <- function(genotype, phi = 0.2, incomp_type = c('10','01'), group_size =
 }
 
 #Initialize data frame -----
-initial_condition <- function(N = 50,assort_sigma = 0.01, bdmi_B = 6, phi = 0.2){
+initial_condition <- function(N = 50,assort_sigma = 0.01, bdmi_B = 10, phi = 0.2){
   require(dplyr)
-  n0 <- data.frame(zi = runif(N), #starting traits are uniformly distributed
+  n0 <- data.frame(zi = rnorm(N,0, 0.5), #starting traits are uniformly distributed
                    sex = sample(c("F", "M"), size = N, replace = TRUE),
                    assort_sigma = assort_sigma,
                    incomp = 0,
@@ -150,8 +150,8 @@ mating <- function(population, competition,
 #Simulator  -----
 ibm <- function(population, num_gens,
                 phi = 0.2, birth = 10,
-                theta = c(0, 0.01), sig2_alpha = 0.05, K0 = 50, sig2_k = 0.05,
-                migration_p = 0.1, bdmi_mu = 10^-3, eco_mu = 10^-2, assort_mu = 0){
+                theta = c(-0.5, 0.5), sig2_alpha = 0.05, K0 = 50, sig2_k = 0.05,
+                migration_p = 0.05, bdmi_mu = 10^-2, eco_mu = 10^-1, assort_mu = 10^-2){
 
   require(dplyr)
 
@@ -225,6 +225,11 @@ ibm <- function(population, num_gens,
       N$zi <- rnorm(n = length(N$zi), mean = N$zi, sd = eco_mu)
 
       #assortativity trait
+      N$assort_sigma <- rlnorm(n = length(N$assort_sigma),
+                               mean = log(N$assort_sigma), #lognormal where mean = log(assortment_sigma)
+                               sd = assort_mu)
+      N$assort_sigma + 0.00001 #add a small constant to prevent numerical issues from dividing by 0
+
       N$assort_sigma <- rnorm(n = length(N$assort_sigma), mean = N$assort_sigma, sd = assort_mu)
 
 
@@ -260,4 +265,6 @@ ibm <- function(population, num_gens,
 
   return(output)
 }
+
+
 
